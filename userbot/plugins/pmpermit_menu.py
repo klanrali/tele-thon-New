@@ -1,161 +1,155 @@
-"""
-Support chatbox for pmpermit.
-Used by incoming messages with trigger as /start
-Will not work for already approved people.
-Credits: written by ༺αиυвιѕ༻ {@A_Dark_Princ3}
-"""
+# @iqthon c 2021
 import asyncio
-
-from telethon import events, functions
-
+import io 
+import telethon.sync
+from telethon.tl.functions.users import GetFullUserRequest
 import userbot.plugins.sql_helper.pmpermit_sql as pmpermit_sql
+from telethon import events, errors, functions, types
+from userbot import ALIVE_NAME, LESS_SPAMMY
+from userbot.utils import admin_cmd
 
-from . import ALIVE_NAME, PM_START, PMMESSAGE_CACHE, set_key
 
-DEFAULTUSER = str(ALIVE_NAME) if ALIVE_NAME else "cat"
+DEFAULTUSER = str(ALIVE_NAME) if ALIVE_NAME else "لايوجد اسم عزيزي تابعنا @IQTHON"
 PREV_REPLY_MESSAGE = {}
-PM = f"""Hello. You are accessing the availabe menu of my master, {DEFAULTUSER}.
-__Let's make this smooth and let me know why you are here.__
-**Choose one of the following reasons why you are here:**
-
-`a`. To chat with my master
-`b`. To spam my master's inbox.
-`c`. To enquire something
-`d`. To request something\n"""
-ONE = """__Okay. Your request has been registered. Do not spam my master's inbox.You can expect a reply within next few years. He/She is a busy man, unlike you probably.__
-
-**⚠️ You will be blocked and reported if you spam. ⚠️**\n\n"""
-TWO = " `███████▄▄███████████▄  \n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\n▓▓▓▓▓▓█░░░░░░░░░░░░░░█\n▓▓▓▓▓▓███░░░░░░░░░░░░█\n██████▀▀▀█░░░░██████▀  \n░░░░░░░░░█░░░░█  \n░░░░░░░░░░█░░░█  \n░░░░░░░░░░░█░░█  \n░░░░░░░░░░░█░░█  \n░░░░░░░░░░░░▀▀ `\n\n**So uncool, this is not your home. Go bother someone else. You have been blocked and reported until further notice.**"
-THREE = "__Okay. My master has not seen your message yet.He/She usually responds to people,though idk about retarted ones.__\n __He'll respond when he/she comes back, if he/she wants to.There's already a lot of pending messages😶__\n **Please do not spam unless you wish to be blocked and reported.**"
-FOUR = "`Okay. please have the basic manners as to not bother my master too much. If he/she wishes to help you, he/she will respond to you soon.`\n**Do not ask repeatdly else you will be blocked and reported.**"
-LWARN = "**This is your last warning. DO NOT send another message else you will be blocked and reported. Keep patience. My master will respond you ASAP.**\n"
 
 
-@bot.on(events.NewMessage(pattern=r"\/start", incoming=True))
+@command(pattern=r"\/start", incoming=True)
 async def _(event):
-    if event.fwd_from:
-        return
-    chat_id = event.sender_id
+    chat_id = event.from_id
+    userid = event.sender_id
     if not pmpermit_sql.is_approved(chat_id):
         chat = await event.get_chat()
-        if chat_id not in PM_START:
-            PM_START.append(chat_id)
-        if not event.is_private:
+        if event.fwd_from:
             return
-        set_key(PMMESSAGE_CACHE, event.chat_id, event.id)
-        try:
-            async with event.client.conversation(chat) as conv:
-                if pmpermit_sql.is_approved(chat_id):
-                    return
-                test1 = await event.client.send_message(chat, PM)
-                set_key(PMMESSAGE_CACHE, event.chat_id, test1.id)
-                chat_id = event.sender_id
-                response = await conv.get_response(chat)
-                y = response.text
-                if y == "a" or "A":
-                    if pmpermit_sql.is_approved(chat_id):
-                        return
-                    set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                    test2 = await event.client.send_message(chat, ONE)
-                    set_key(PMMESSAGE_CACHE, event.chat_id, test2.id)
-                    response = await conv.get_response(chat)
-                    if response.text != "/start":
-                        if pmpermit_sql.is_approved(chat_id):
-                            return
-                        set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                        test3 = await event.client.send_message(chat, LWARN)
-                        set_key(PMMESSAGE_CACHE, event.chat_id, test3.id)
-                        response = await conv.get_response(chat)
-                        if response.text != "/start":
-                            if pmpermit_sql.is_approved(chat_id):
-                                return
-                            set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                            test4 = await event.client.send_message(chat, TWO)
-                            set_key(PMMESSAGE_CACHE, event.chat_id, test4.id)
-                            await asyncio.sleep(3)
-                            await event.client(functions.contacts.BlockRequest(chat_id))
-                elif y == "b" or "B":
-                    if pmpermit_sql.is_approved(chat_id):
-                        return
-                    set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                    test5 = await event.client.send_message(chat, LWARN)
-                    set_key(PMMESSAGE_CACHE, event.chat_id, test5.id)
-                    response = await conv.get_response(chat)
-                    if response.text != "/start":
-                        if pmpermit_sql.is_approved(chat_id):
-                            return
-                        set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                        test6 = await event.client.send_message(chat, TWO)
-                        set_key(PMMESSAGE_CACHE, event.chat_id, test6.id)
-                        await asyncio.sleep(3)
-                        await event.client(functions.contacts.BlockRequest(chat_id))
-                elif y == "c" or "C":
-                    if pmpermit_sql.is_approved(chat_id):
-                        return
-                    set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                    test7 = await event.client.send_message(chat, THREE)
-                    set_key(PMMESSAGE_CACHE, event.chat_id, test7.id)
-                    response = await conv.get_response(chat)
-                    if response.text != "/start":
-                        if pmpermit_sql.is_approved(chat_id):
-                            return
-                        set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                        test8 = await event.client.send_message(chat, LWARN)
-                        set_key(PMMESSAGE_CACHE, event.chat_id, test8.id)
-                        response = await conv.get_response(chat)
-                        if response.text != "/start":
-                            if pmpermit_sql.is_approved(chat_id):
-                                return
-                            set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                            test9 = await event.client.send_message(chat, TWO)
-                            set_key(PMMESSAGE_CACHE, event.chat_id, test9.id)
-                            await asyncio.sleep(3)
-                            await event.client(functions.contacts.BlockRequest(chat_id))
-                elif y == "d" or "D":
-                    if pmpermit_sql.is_approved(chat_id):
-                        return
-                    set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                    test10 = await event.client.send_message(chat, FOUR)
-                    set_key(PMMESSAGE_CACHE, event.chat_id, test10.id)
-                    response = await conv.get_response(chat)
-                    if response.text != "/start":
-                        if pmpermit_sql.is_approved(chat_id):
-                            return
-                        set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                        test11 = await event.client.send_message(chat, LWARN)
-                        set_key(PMMESSAGE_CACHE, event.chat_id, test11.id)
-                        response = await conv.get_response(chat)
-                        if response.text != "/start":
-                            if pmpermit_sql.is_approved(chat_id):
-                                return
-                            set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                            await event.client.send_message(chat, TWO)
-                            await asyncio.sleep(3)
-                            await event.client(functions.contacts.BlockRequest(chat_id))
-                else:
-                    if pmpermit_sql.is_approved(chat_id):
-                        return
-                    test12 = await event.client.send_message(
-                        chat,
-                        "You have entered an invalid command. Please send `/start` again or do not send another message if you do not wish to be blocked and reported.",
-                    )
-                    set_key(PMMESSAGE_CACHE, event.chat_id, test12.id)
-                    response = await conv.get_response(chat)
-                    z = response.text
-                    if z != "/start":
-                        if pmpermit_sql.is_approved(chat_id):
-                            return
-                        set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                        test13 = await event.client.send_message(chat, LWARN)
-                        set_key(PMMESSAGE_CACHE, event.chat_id, test13.id)
-                        response = await conv.get_response(chat)
-                        if response.text != "/start":
-                            if pmpermit_sql.is_approved(chat_id):
-                                return
-                            set_key(PMMESSAGE_CACHE, event.chat_id, response.id)
-                            test14 = await event.client.send_message(chat, TWO)
-                            set_key(PMMESSAGE_CACHE, event.chat_id, test14.id)
-                            await asyncio.sleep(3)
-                            await event.client(functions.contacts.BlockRequest(chat_id))
-        except Exception as e:
-            LOGS.info(str(e))
+        if event.is_private:
+         Nudas = ("ذكر الجنسيه.__\n"
+                  "`1`. -  𖢞Source Iraq Channel @IQTHON\n"
+                  "`2`. -  𖢞Principal developer: @klanr\n"
+                  "`3`. -  𖢞BOT commands Iraq Thon @iraqthonbot\n")
+         PM = ("-  𖢞Welcome to Source Iraq"
+            f"{DEFAULTUSER}.\n"
+            "-  𖢞Source Iraq Channel @IQTHON\n"
+            "-  𖢞Principal developer: @klanr\n"
+            "-  𖢞Never repeat here\n"
+            "-  𖢞Email the person now\n"
+            "-  𖢞BOT commands Iraq Thon @iraqthonbot\n"
+            "-  𖢞In case here is a problem, send .restart\n")
+         ONE = ("حسنا ارسل رسالتك كامله عند الفراغ ارد عليك")
+         TWO = ("@IQTHON")
+         THREE = ("@IQTHON")
+         FOUR = ("@IQTHON")
+         LWARN = ("@IQTHON")
+     
+        async with borg.conversation(chat) as conv:
+         await borg.send_message(chat, PM)
+         chat_id = event.from_id
+         response = await conv.get_response(chat)
+         y = response.text
+         if y == "1":
+             await borg.send_message(chat, ONE)
+             response = await conv.get_response(chat)
+             await event.delete()
+             if not response.text == "/start":
+                 await response.delete()
+                 await borg.send_message(chat, LWARN)
+                 response = await conv.get_response(chat)
+                 await event.delete()
+                 await response.delete()
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, TWO)
+                     await asyncio.sleep(3)
+                     await event.client(functions.contacts.BlockRequest(chat_id))
+         elif y == "2":
+             await borg.send_message(chat, LWARN)
+             response = await conv.get_response(chat)
+             if not response.text == "/start":
+                 await borg.send_message(chat, TWO)
+                 await asyncio.sleep(3)
+                 await event.client(functions.contacts.BlockRequest(chat_id))
+         elif y == "3":
+             await borg.send_message(chat, Nudas)
+             response = await conv.get_response(chat)
+             await event.delete()
+             await response.delete()
+             x = response.text
+             if x == "1":
+                 await borg.send_message(chat, "@IQTHON")
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, LWARN)
+                     response = await conv.get_response(chat)
+                     await event.delete()
+                     await response.delete()
+                     response = await conv.get_response(chat)
+                     if not response.text == "/start":
+                         await borg.send_message(chat, TWO)
+                         await asyncio.sleep(3)
+                         await event.client(functions.contacts.BlockRequest(chat_id))
+             elif x == "2":
+                 await borg.send_message(chat, "@IQTHON")
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, LWARN)
+                     response = await conv.get_response(chat)
+                     await event.delete()
+                     await response.delete()
+                     response = await conv.get_response(chat)
+                     if not response.text == "/start":
+                         await borg.send_message(chat, TWO)
+                         await asyncio.sleep(3)
+                         await event.client(functions.contacts.BlockRequest(chat_id))
+             elif x == "3":
+                 await borg.send_message(chat, "@IQTHON")
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, LWARN)
+                     response = await conv.get_response(chat)
+                     await event.delete()
+                     await response.delete()
+                     response = await conv.get_response(chat)
+                     if not response.text == "/start":
+                         await borg.send_message(chat, TWO)
+                         await asyncio.sleep(3)
+                         await event.client(functions.contacts.BlockRequest(chat_id))
+             else:
+                 await borg.send_message(chat, "@IQTHON")
+                 response = await conv.get_response(chat)
+                 if not response.text.startswith("/start"):
+                     await borg.send_message(chat, TWO)
+                     await asyncio.sleep(3)
+                     await event.client(functions.contacts.BlockRequest(chat_id))
+         elif y == "4":
+             await borg.send_message(chat, FOUR)
+             response = await conv.get_response(chat)
+             await event.delete()
+             await response.delete()
+             if not response.text == "/start":
+                 await borg.send_message(chat, LWARN)
+                 await event.delete()
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, TWO)
+                     await asyncio.sleep(3)
+                     await event.client(functions.contacts.BlockRequest(chat_id))
+         elif y == "5":
+             await borg.send_message(chat, FOUR)
+             response = await conv.get_response(chat)
+             if not response.text == "/start":
+                 await borg.send_message(chat, LWARN)
+                 response = await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, TWO)
+                     await asyncio.sleep(3)
+                     await event.client(functions.contacts.BlockRequest(chat_id))
+         else:
+             await borg.send_message(chat, "@IQTHON")
+             response = await conv.get_response(chat)
+             z = response.text
+             if not z == "/start":
+                 await borg.send_message(chat, LWARN)
+                 await conv.get_response(chat)
+                 if not response.text == "/start":
+                     await borg.send_message(chat, TWO)
+                     await asyncio.sleep(3)
+                     await event.client(functions.contacts.BlockRequest(chat_id))
