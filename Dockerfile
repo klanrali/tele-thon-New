@@ -1,4 +1,4 @@
-FROM sandy1709/catuserbot:latest
+FROM klanrali/tele-thon-New:latest
 
 #clonning repo 
 RUN git clone https://github.com/klanrali/tele-thon-New.git /root/userbot
